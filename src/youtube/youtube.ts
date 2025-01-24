@@ -4,7 +4,11 @@ import { readdir, readFile } from "fs/promises";
 import { getAuth } from "../auth/auth";
 import { OAuth2Client } from "google-auth-library";
 import path from "path";
-import { log } from "console";
+import { encodeFileName } from "./utils";
+// change these for each uploads session
+const TITLE_HASHTAGS = "#kumbh #kumbhmela #motivation #meditation #relaxing";
+const DESCRIPTION_HASHTAGS =
+  "#shorts #kumbh #kumbhmela #motivation #meditation #relaxing #religion";
 
 interface VideoDetails {
   title: string;
@@ -16,22 +20,22 @@ interface VideoDetails {
   notifySubscribers?: boolean;
 }
 
-// export const getChannel = async (auth: OAuth2Client) => {
-//   try {
-//     const service = google.youtube("v3");
-//     const response: any = await service.channels.list({
-//       auth: auth,
-//       part: ["snippet", "contentDetails", "statistics"],
-//       forHandle: "@himalayan-avengers",
-//     });
+export const getChannel = async (auth: OAuth2Client) => {
+  try {
+    const service = google.youtube("v3");
+    const response: any = await service.channels.list({
+      auth: auth,
+      part: ["snippet", "contentDetails", "statistics"],
+      forHandle: "@himalayan-avengers",
+    });
 
-//     const channels = response.data.items;
-//     return channels;
-//   } catch (err) {
-//     console.log("The API returned an error: " + err);
-//     throw err;
-//   }
-// };
+    const channels = response.data.items;
+    return channels;
+  } catch (err) {
+    console.log("The API returned an error: " + err);
+    throw err;
+  }
+};
 
 const getVideoStream = (filePath: string) => {
   return fs.createReadStream(filePath);
@@ -81,7 +85,7 @@ const defaultVDetail: VideoDetails = {
   tags: ["test", "quotes"],
   categoryId: "22", // Category ID for People & Blogs
   privacyStatus: "private",
-  publishAt: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(), // Schedule the video to be public at this date and time
+  publishAt: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(), // Schedule the video to be public at this date and time | AFTER Hours
 };
 
 const getVideoFileNames = async () => {
@@ -109,7 +113,7 @@ const getVideoDetail = (videoInfos: [], videoFile: string) => {
     videoFile.lastIndexOf("\\") + 1,
     videoFile.lastIndexOf(".")
   );
-  return videoInfos.find((v: any) => v.name === pName);
+  return videoInfos.find((v: any) => encodeFileName(v.title) === pName);
 };
 
 export const startUpload = async () => {
@@ -127,7 +131,12 @@ export const startUpload = async () => {
       );
 
       const vDetail: VideoDetails = {
-        title: `${vInfo?.name || pName} #farmers #agriculture #quotes`,
+        title: `${vInfo?.title || pName} ${TITLE_HASHTAGS}`,
+        description: `${DESCRIPTION_HASHTAGS}
+
+        ${vInfo?.summary || ""}
+
+        ${vInfo?.translation || ""}`,
         categoryId: defaultVDetail.categoryId,
         privacyStatus: defaultVDetail.privacyStatus,
         publishAt: defaultVDetail.publishAt,
